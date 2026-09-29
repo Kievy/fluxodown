@@ -1,0 +1,46 @@
+const assert = require('node:assert/strict');
+const path = require('node:path');
+const fs = require('node:fs/promises');
+const { chromium } = require('playwright');
+const { fixture } = require('./fixture');
+const { createServer, configFromEnv } = require('../src/server');
+(async () => {
+  const source = await fixture();
+  let instance, browser;
+  try {
+    const config = configFromEnv({ APP_PASSWORD: 'test-only-password-1234' });
+    config.directory = await fs.mkdtemp(path.join(source.output, 'web-ui-'));
+    config.allowedHosts = ['127.0.0.1', new URL(source.url).host];
+    instance = await createServer(config);
+    await new Promise(resolve => instance.server.listen(0, '127.0.0.1', resolve));
+    browser = await chromium.launch({ channel: 'msedge', headless: true });
+    const context = await browser.newContext({ httpCredentials: { username: config.username, password: config.password }, acceptDownloads: true });
+    const page = await context.newPage();
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`http://127.0.0.1:${instance.server.address().port}`);
+    await page.waitForFunction(() => !document.getElementById('inspect').disabled);
+    assert.ok(await page.locator('#choose-folder').isHidden());
+    await page.locator('#url').fill(source.url);
+    await page.locator('#inspect').click();
+    await page.waitForFunction(() => !document.getElementById('download').disabled);
+    await page.locator('#format').selectOption('mp3');
+    await page.locator('#quality').selectOption('192');
+    await page.locator('#download').click();
+    await page.locator('#show-file').waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#status-title').innerText(), 'Arquivo pronto para salvar');
+    const transfer = page.waitForEvent('download');
+    await page.locator('#show-file').click();
+    const file = await transfer;
+    assert.ok(file.suggestedFilename().endsWith('.mp3'));
+    await file.saveAs(path.join(source.output, 'web-browser-download.mp3'));
+    assert.ok((await fs.stat(path.join(source.output, 'web-browser-download.mp3'))).size > 100);
+    await page.screenshot({ path: path.join(source.output, 'web-desktop.png'), fullPage: true });
+    await page.reload();
+    await page.locator('.file-row a').waitFor();
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+    await page.screenshot({ path: path.join(source.output, 'web-mobile.png'), fullPage: true });
+    assert.deepEqual(errors, []);
+    console.log('OK: navegador, login, MP3, transferência ao cliente, arquivos após recarregar e layout móvel.');
+  } finally { if (browser) await browser.close(); if (instance) await instance.close(); await source.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });

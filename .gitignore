@@ -1,0 +1,8 @@
+node_modules/
+bin/
+test-output/
+*.log
+.env
+.env.*
+!.env.example
+downloads/

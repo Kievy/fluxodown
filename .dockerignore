@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!src/
+!src/core.js
+!src/server.js
+!src/ui/
+!src/ui/**
