@@ -30,6 +30,7 @@ function configFromEnv(env = process.env) {
     engine: { executable: env.YTDLP_PATH || (windows ? path.join(bin, 'yt-dlp.exe') : '/opt/yt-dlp/bin/yt-dlp'),
       ffmpeg: env.FFMPEG_LOCATION || (windows ? bin : '/usr/bin'),
       node: env.NODE_EXECUTABLE || process.execPath,
+      cookiesFile: env.YTDLP_COOKIES_FILE || '',
       extraArgs: ['--no-cache-dir'],
     }, bin,
   };

@@ -39,6 +39,7 @@ Esta versão é para uso pessoal ou por pessoas de confiança, com uma única co
 | `FILE_RETENTION_HOURS` | `1` | Validade dos arquivos prontos |
 | `JOB_TIMEOUT_MINUTES` | `60` | Tempo máximo de um download; consultas têm limite de 2 minutos |
 | `YTDLP_VERSION` | `2026.8.19` | Versão instalada ao construir a imagem |
+| `YTDLP_COOKIES_FILE` | Vazio | Caminho de um arquivo Netscape cookies.txt montado no contêiner |
 
 O Compose também limita o contêiner a 2 CPUs e 2 GiB de RAM. Ajuste esses valores no arquivo conforme o servidor. Os limites de disco são verificados pela aplicação a cada 2 segundos e podem ser ultrapassados brevemente durante downloads rápidos; não são uma quota rígida do volume.
 
@@ -82,4 +83,4 @@ Os testes web verificam autenticação, restrição de sites, requisições de o
 
 O build Linux/Docker precisa ser verificado no servidor: o ambiente de desenvolvimento atual não possui Docker nem WSL instalado. Não foi realizado deploy em um servidor remoto.
 
-Alguns sites podem bloquear o IP de servidores ou exigir autenticação/cookies. O sucesso na máquina local não garante que o mesmo vídeo esteja disponível no IP do servidor. Esta versão não inclui envio de cookies nem desbloqueio de DRM.
+Alguns sites podem bloquear o IP de servidores ou exigir autenticação/cookies. O sucesso na máquina local não garante que o mesmo vídeo esteja disponível no IP do servidor. Para o erro de verificação do YouTube, consulte [YOUTUBE-COOKIES.md](YOUTUBE-COOKIES.md). O aplicativo aceita cookies fornecidos pelo administrador por arquivo montado; não há upload de cookies pela interface nem desbloqueio de DRM.

@@ -33,7 +33,7 @@ O bitrate de áudio representa a qualidade solicitada à conversão, não melhor
 
 `npm run setup` baixa o executável oficial do yt-dlp, verifica seu SHA-256 e coloca FFmpeg, FFprobe e uma cópia do Node em `bin/`. Não exige Python nem altera o PATH. Execute **atualizar-yt-dlp.cmd**, com o aplicativo fechado, para atualizar o yt-dlp quando os sites mudarem.
 
-A disponibilidade depende do suporte do yt-dlp e das restrições do site. Esta versão não possui interface para login/cookies, conteúdo com DRM ou playlists.
+A disponibilidade depende do suporte do yt-dlp e das restrições do site. A versão web aceita cookies por arquivo montado no servidor: veja [YOUTUBE-COOKIES.md](YOUTUBE-COOKIES.md). Não há interface para login no YouTube, upload de cookies, conteúdo com DRM ou playlists.
 
 ## Desenvolvimento
 

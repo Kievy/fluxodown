@@ -2,6 +2,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { spawn } = require('node:child_process');
 const readline = require('node:readline');
+const os = require('node:os');
 
 const PROFILES = {
   mp4: { label: 'MP4', kind: 'video', ext: 'mp4', audio: 'm4a' },
@@ -73,6 +74,42 @@ function downloadArgs({ url, format, quality, directory }, summary) {
   return args;
 }
 
+function prepareCookies(source) {
+  if (!source) return null;
+  let content;
+  try {
+    if (!fs.statSync(source).isFile() || fs.statSync(source).size > 1024 * 1024) throw new Error();
+    content = fs.readFileSync(source, 'utf8').replace(/^\uFEFF/, '');
+  } catch { throw new Error('Não foi possível ler YTDLP_COOKIES_FILE. Confira o arquivo montado e suas permissões no servidor.'); }
+  const lines = content.split(/\r?\n/);
+  const entries = lines.filter(line => line.trim() && (!line.startsWith('#') || line.startsWith('#HttpOnly_')));
+  const valid = entries.length && entries.every(line => {
+    const fields = line.replace(/^#HttpOnly_/, '').split('\t');
+    return fields.length === 7 && /^[.a-z\d-]+$/i.test(fields[0]) && /^(TRUE|FALSE)$/.test(fields[1])
+      && fields[0].startsWith('.') === (fields[1] === 'TRUE') && fields[2].startsWith('/')
+      && /^(TRUE|FALSE)$/.test(fields[3]) && /^\d+$/.test(fields[4]) && Number.isSafeInteger(Number(fields[4])) && fields[5];
+  });
+  if (!/^# (?:Netscape )?HTTP Cookie File/.test(lines[0]) || !valid) {
+    throw new Error('Arquivo de cookies inválido. Exporte os cookies no formato Netscape cookies.txt.');
+  }
+  // yt-dlp regrava o cookie jar. Use uma cópia por operação para aceitar secrets
+  // montados somente para leitura e evitar concorrência no arquivo original.
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'fluxo-cookies-'));
+  const file = path.join(directory, 'cookies.txt');
+  try { fs.writeFileSync(file, content, { mode: 0o600 }); }
+  catch (error) { fs.rmSync(directory, { recursive: true, force: true }); throw error; }
+  return { file, cleanup: () => fs.rmSync(directory, { recursive: true, force: true, maxRetries: 3 }) };
+}
+
+function friendlyError(message, hasCookies = false) {
+  if (/sign in to confirm (?:you[’']?re|you are) not a bot/i.test(message)) {
+    return hasCookies
+      ? 'O YouTube continua exigindo verificação, mesmo com cookies. A sessão pode ter expirado ou o IP do servidor pode estar bloqueado. Renove os cookies ou tente a versão desktop na sua conexão local.'
+      : 'O YouTube exigiu verificação de acesso nesta conexão. Configure cookies do YouTube no servidor (YTDLP_COOKIES_FILE) ou tente a versão desktop na sua conexão local. A senha do Fluxo não autentica no YouTube.';
+  }
+  return message;
+}
+
 class YtDlp {
   constructor(bin, onEvent = () => {}, options = {}) {
     this.bin = bin;
@@ -82,7 +119,8 @@ class YtDlp {
     this.executable = options.executable || path.join(bin, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
     this.ffmpeg = options.ffmpeg || bin;
     this.node = options.node || path.join(bin, process.platform === 'win32' ? 'node.exe' : 'node');
-    this.extraArgs = options.extraArgs || [];
+    this.extraArgs = [...(options.extraArgs || [])];
+    this.cookiesFile = options.cookiesFile || '';
   }
   check() {
     const suffix = process.platform === 'win32' ? '.exe' : '';
@@ -105,12 +143,14 @@ class YtDlp {
     if (this.child) throw new Error('Aguarde a operação atual terminar.');
     this.check();
     this.cancelled = false;
+    const cookies = prepareCookies(this.cookiesFile);
     return new Promise((resolve, reject) => {
       let output = '', errors = '', finalPath = '', timedOut = false;
       const child = spawn(this.executable, [
         '--ignore-config', '--no-plugin-dirs', '--no-playlist', '--no-colors',
         '--encoding', 'utf-8', '--socket-timeout', '25', '--retries', '3',
-        '--ffmpeg-location', this.ffmpeg, '--js-runtimes', `node:${this.node}`, ...this.extraArgs, ...args,
+        '--ffmpeg-location', this.ffmpeg, '--js-runtimes', `node:${this.node}`,
+        ...(cookies ? ['--cookies', cookies.file] : []), ...this.extraArgs, ...args,
       ], { windowsHide: true, shell: false, detached: process.platform !== 'win32' });
       this.child = child;
       const timer = metadata ? setTimeout(() => { timedOut = true; this.cancel(); }, 120000) : null;
@@ -133,10 +173,10 @@ class YtDlp {
         clearTimeout(timer); reader.close(); this.child = null;
         if (timedOut) return reject(new Error('A consulta demorou demais. Confira sua conexão e tente novamente.'));
         if (this.cancelled) return reject(new Error('Operação cancelada.'));
-        if (code !== 0) return reject(new Error(errors.trim() || `O yt-dlp encerrou com código ${code}.`));
+        if (code !== 0) return reject(new Error(friendlyError(errors.trim() || `O yt-dlp encerrou com código ${code}.`, Boolean(cookies))));
         resolve(metadata ? output : finalPath);
       });
-    });
+    }).finally(() => cookies?.cleanup());
   }
   async inspect(url) {
     return summarize(JSON.parse(await this.run(['--dump-single-json', '--skip-download', '--', validateUrl(url)], { metadata: true })));
@@ -147,4 +187,4 @@ class YtDlp {
     return file;
   }
 }
-module.exports = { validateUrl, summarize, downloadArgs, YtDlp };
+module.exports = { validateUrl, summarize, downloadArgs, YtDlp, prepareCookies, friendlyError };

@@ -6,3 +6,5 @@ test-output/
 .env.*
 !.env.example
 downloads/
+secrets/
+*cookies*.txt
