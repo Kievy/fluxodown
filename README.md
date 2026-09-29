@@ -2,7 +2,7 @@
 
 Aplicativo de desktop para Windows x64, em português, que usa o [yt-dlp](https://github.com/yt-dlp/yt-dlp) em segundo plano.
 
-Também possui versão web para servidor Linux com Docker/Dokploy. Consulte o passo a passo em [DEPLOY-DOKPLOY.md](DEPLOY-DOKPLOY.md). Ela mantém o seletor de formatos e qualidades, adiciona acesso por senha e entrega os arquivos pelo navegador.
+O aplicativo roda diretamente no seu computador, sem servidor, Docker ou senha de acesso. Os downloads são salvos na pasta escolhida e permanecem nela até você apagá-los; não há exclusão automática após 1 hora.
 
 ## Como abrir
 
@@ -33,7 +33,7 @@ O bitrate de áudio representa a qualidade solicitada à conversão, não melhor
 
 `npm run setup` baixa o executável oficial do yt-dlp, verifica seu SHA-256 e coloca FFmpeg, FFprobe e uma cópia do Node em `bin/`. Não exige Python nem altera o PATH. Execute **atualizar-yt-dlp.cmd**, com o aplicativo fechado, para atualizar o yt-dlp quando os sites mudarem.
 
-A disponibilidade depende do suporte do yt-dlp e das restrições do site. A versão web aceita cookies por arquivo montado no servidor: veja [YOUTUBE-COOKIES.md](YOUTUBE-COOKIES.md). Não há interface para login no YouTube, upload de cookies, conteúdo com DRM ou playlists.
+A disponibilidade depende do suporte do yt-dlp e das restrições do site. As consultas usam a conexão do seu computador. Não há interface para login no YouTube, importação de cookies, conteúdo com DRM ou playlists. Se o site exigir verificação, confira se o vídeo abre no navegador e atualize o yt-dlp pelo `atualizar-yt-dlp.cmd`.
 
 ## Desenvolvimento
 

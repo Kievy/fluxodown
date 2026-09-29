@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Fluxo — Video Downloader</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -30,10 +30,8 @@
     </section>
     <section id="status-panel" class="card status-card" hidden aria-live="polite"><div class="status-top"><strong id="status-title">Preparando download…</strong><button id="cancel" class="text-button">Cancelar</button><button id="show-file" class="text-button" hidden>Mostrar na pasta ↗</button></div><progress id="progress" max="100" value="0" aria-label="Progresso da etapa atual"></progress><p id="status-detail">Conectando à fonte…</p><details id="log-details"><summary>Detalhes do yt-dlp</summary><pre id="log"></pre></details></section>
     <div id="error" role="alert" hidden></div>
-    <section id="files-panel" class="card" hidden><div class="status-top"><strong>Seus arquivos</strong><button id="refresh-files" class="text-button">Atualizar ↻</button></div><p id="retention-hint" class="hint"></p><div id="files-list"></div></section>
     <footer><span>O próximo play fica por sua conta.</span><button id="open-folder" class="text-button">Abrir downloads ↗</button></footer>
   </main>
-  <script src="web-api.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

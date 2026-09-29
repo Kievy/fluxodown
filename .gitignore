@@ -4,7 +4,6 @@ test-output/
 *.log
 .env
 .env.*
-!.env.example
 downloads/
 secrets/
 *cookies*.txt

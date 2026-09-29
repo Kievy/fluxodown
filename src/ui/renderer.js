@@ -1,12 +1,5 @@
 const $ = id => document.getElementById(id);
 const api = window.downloader;
-if (api.web) {
-  $('choose-folder').hidden = true;
-  $('show-file').textContent = 'Salvar no computador ↓';
-  $('open-folder').textContent = 'Seus arquivos ↓';
-  $('files-panel').hidden = false;
-  $('download').lastChild.textContent = ' Preparar download';
-}
 let info = null, inspectedUrl = '', busy = false, ready = false, logs = [];
 const errors = message => { $('error').textContent = message || ''; $('error').hidden = !message; };
 function unwrap(result) { if (!result.ok) throw new Error(result.error); return result.value; }
@@ -75,7 +68,6 @@ $('choose-folder').addEventListener('click', async () => {
   try { const folder = unwrap(await api.chooseFolder()); $('folder').textContent = folder; $('folder').title = folder; } catch (error) { errors(error.message); }
 });
 for (const id of ['open-folder', 'show-file']) $(id).addEventListener('click', async () => {
-  if (api.web && id === 'open-folder') { refreshFiles(); $('files-panel').scrollIntoView({ behavior: 'smooth' }); return; }
   try { unwrap(await api.openFolder()); } catch (error) { errors(error.message); }
 });
 $('download').addEventListener('click', async () => {
@@ -87,9 +79,8 @@ $('download').addEventListener('click', async () => {
   $('status-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   try {
     const result = unwrap(await api.download({ url: inspectedUrl, format: $('format').value, quality: $('quality').value }));
-    $('status-title').textContent = api.web ? 'Arquivo pronto para salvar' : 'Download concluído'; $('status-detail').textContent = result.name;
+    $('status-title').textContent = 'Download concluído'; $('status-detail').textContent = result.name;
     $('progress').value = 100; $('show-file').hidden = false;
-    if (api.web) refreshFiles();
   } catch (error) {
     const cancelled = error.message === 'Operação cancelada.';
     $('status-title').textContent = cancelled ? 'Download cancelado' : 'Não foi possível concluir';
@@ -112,37 +103,14 @@ api.onProgress(event => {
       $('status-detail').textContent = `${bytes(event.downloaded)} nesta faixa${event.speed ? ` · ${bytes(event.speed)}/s` : ''}${event.eta != null ? ` · ${Math.ceil(event.eta)}s restantes` : ''}`;
     }
   } else {
-    if (event.type === 'logs') logs = event.messages;
-    else logs.push(event.message);
+    logs.push(event.message);
     logs = logs.slice(-120); $('log').textContent = logs.join('\n');
     if (/\[(Merger|ExtractAudio|VideoRemuxer|Fixup)/.test(logs.at(-1) || '')) { $('status-title').textContent = 'Finalizando arquivo…'; $('status-detail').textContent = 'O FFmpeg está preparando o formato escolhido.'; $('progress').removeAttribute('value'); }
   }
 });
-async function refreshFiles() {
-  if (!api.web) return;
-  $('refresh-files').disabled = true;
-  try {
-    const files = unwrap(await api.listFiles());
-    $('files-list').replaceChildren();
-    if (!files.length) { const empty = document.createElement('p'); empty.className = 'hint'; empty.textContent = 'Os arquivos concluídos aparecerão aqui.'; $('files-list').append(empty); }
-    for (const file of files) {
-      const row = document.createElement('div'); row.className = 'file-row';
-      const title = document.createElement('span'); title.textContent = file.result.name;
-      const link = document.createElement('a'); link.className = 'text-button'; link.href = file.result.downloadUrl; link.download = file.result.name; link.textContent = 'Salvar ↓';
-      row.append(title, link); $('files-list').append(row);
-    }
-  } catch (error) { errors(error.message); }
-  finally { $('refresh-files').disabled = false; }
-}
-$('refresh-files').addEventListener('click', refreshFiles);
 api.init().then(result => {
   const state = unwrap(result);
-  $('folder').textContent = state.web ? 'No seu computador, depois que o arquivo estiver pronto.' : state.folder;
+  $('folder').textContent = state.folder;
   $('folder').title = $('folder').textContent;
-  if (state.web) {
-    $('sites-hint').textContent = `Sites habilitados: ${state.allowedHosts.join(', ')}.`;
-    $('retention-hint').textContent = `Disponíveis por ${state.retentionHours} ${state.retentionHours === 1 ? 'hora' : 'horas'}. Depois são apagados automaticamente do servidor.`;
-    refreshFiles();
-  }
   ready = true; controls();
 }).catch(error => errors(error.message));
